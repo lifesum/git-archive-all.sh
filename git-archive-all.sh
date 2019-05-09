@@ -227,6 +227,7 @@ git archive --format=$FORMAT --prefix="$PREFIX" $ARCHIVE_OPTS $TREEISH > $TMPDIR
 if [ $VERBOSE -eq 1 ]; then
     echo "done"
 fi
+
 echo $TMPDIR/$(basename "$(pwd)").$FORMAT >| $TMPFILE # clobber on purpose
 superfile=`head -n 1 $TMPFILE`
 
@@ -254,6 +255,7 @@ fi
 
 SUBMODULES_LIST=`git submodule`
 if [ -z "$SUBMODULES_LIST" ]; then
+    `rm $TMPLIST`
     if [ $VERBOSE -eq 1 ]; then
         echo "no submodules found"
     fi
@@ -300,10 +302,21 @@ if [ $SEPARATE -eq 0 -o "-" == "$OUT_FILE" ]; then
         # unfortunately, more intelligent options don't work:
         # zipmerge is broken (kills the x bit of directories), and zip --grow does not unpack input zipfiles.
         cd $TMP_UNPACK_FOLDER
+
         sed -e '1d' $TMPFILE | while read file; do
             unzip -q "$file" && rm -f "$file"
         done
-        zip --quiet --recurse-paths "$superfile" .
+
+        if [ -z "$(ls -A .)" ]; then
+           if [ $VERBOSE -eq 1 ]; then
+                echo "No zip update needed"
+            fi
+        else
+            if [ $VERBOSE -eq 1 ]; then
+                echo "Updating zip file"
+            fi
+            zip --quiet --recurse-paths "$superfile" .
+        fi
     fi
 
     echo "$superfile" >| $TMPFILE # clobber on purpose
